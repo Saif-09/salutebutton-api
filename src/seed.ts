@@ -29,7 +29,7 @@ async function fetchWikiImage(name: string): Promise<string | null> {
       headers: { "User-Agent": "SaluteButton/1.0 (seed script)" },
     });
     if (!res.ok) return null;
-    const data = await res.json();
+    const data: any = await res.json();
     return data?.thumbnail?.source ?? data?.originalimage?.source ?? null;
   } catch {
     return null;
