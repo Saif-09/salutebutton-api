@@ -11,10 +11,6 @@ const CATEGORIES = [
   { name: "Politician", slug: "politician", order: 1 },
   { name: "Cricketer", slug: "cricketer", order: 2 },
   { name: "Actor", slug: "actor", order: 3 },
-  { name: "Businessman", slug: "businessman", order: 4 },
-  { name: "Celebrity", slug: "celebrity", order: 5 },
-  { name: "Youtuber", slug: "youtuber", order: 6 },
-  { name: "Athlete", slug: "athlete", order: 7 },
 ];
 
 function avatar(name: string) {
@@ -39,24 +35,10 @@ async function fetchWikiImage(name: string): Promise<string | null> {
 // Map of Wikipedia article names (for those whose names differ from article titles)
 const WIKI_NAMES: Record<string, string> = {
   "Vijay (Thalapathy)": "Vijay (actor)",
-  "CarryMinati (Ajey Nagar)": "CarryMinati",
-  "BB Ki Vines (Bhuvan Bam)": "Bhuvan Bam",
-  "Technical Guruji (Gaurav Chaudhary)": "Gaurav Chaudhary",
-  "Nikhil Sharma (Mumbiker Nikhil)": "Mumbiker Nikhil",
-  "Triggered Insaan (Nischay Malhan)": "Triggered Insaan",
-  "Ranveer Allahbadia (BeerBiceps)": "Ranveer Allahbadia",
-  "Prajakta Koli (MostlySane)": "Prajakta Koli",
-  "Ajju Bhai (Total Gaming)": "Total Gaming (YouTuber)",
-  "Nikunj Lotia (Be YouNick)": "Be YouNick",
-  "Zepto Founders (Aadit & Kaivalya)": "Zepto (company)",
-  "N R Narayana Murthy": "N. R. Narayana Murthy",
   "MK Stalin": "M. K. Stalin",
   "Chandrashekhar Azad": "Chandrashekhar Aazad",
   "MS Dhoni": "MS Dhoni",
   "KL Rahul": "KL Rahul",
-  "PV Sindhu": "P. V. Sindhu",
-  "AR Rahman": "A. R. Rahman",
-  "PR Sreejesh": "P. R. Sreejesh",
 };
 
 type CelebEntry = {
@@ -100,57 +82,6 @@ const CELEBS: CelebEntry[] = [
   { name: "Ranbir Kapoor", categorySlug: "actor", comment: "Bollywood's Versatile Actor" },
   { name: "Alia Bhatt", categorySlug: "actor", comment: "Award-Winning Bollywood Actress" },
 
-  // ───────── BUSINESSMEN ─────────
-  { name: "Mukesh Ambani", categorySlug: "businessman", comment: "Chairman, Reliance Industries — Richest Indian" },
-  { name: "Gautam Adani", categorySlug: "businessman", comment: "Chairman, Adani Group" },
-  { name: "Ratan Tata", categorySlug: "businessman", comment: "Former Chairman, Tata Group — Beloved Icon" },
-  { name: "Sundar Pichai", categorySlug: "businessman", comment: "CEO, Google & Alphabet" },
-  { name: "Azim Premji", categorySlug: "businessman", comment: "Former Chairman, Wipro — Philanthropist" },
-  { name: "Anand Mahindra", categorySlug: "businessman", comment: "Chairman, Mahindra Group" },
-  { name: "N R Narayana Murthy", categorySlug: "businessman", comment: "Co-Founder, Infosys" },
-  { name: "Kumar Mangalam Birla", categorySlug: "businessman", comment: "Chairman, Aditya Birla Group" },
-  { name: "Byju Raveendran", categorySlug: "businessman", comment: "Founder, BYJU'S EdTech" },
-  { name: "Ritesh Agarwal", categorySlug: "businessman", comment: "Founder & CEO, OYO Rooms" },
-  { name: "Vijay Shekhar Sharma", categorySlug: "businessman", comment: "Founder & CEO, Paytm" },
-  { name: "Deep Kalra", categorySlug: "businessman", comment: "Co-Founder, MakeMyTrip" },
-  { name: "Falguni Nayar", categorySlug: "businessman", comment: "Founder & CEO, Nykaa" },
-  { name: "Zepto Founders (Aadit & Kaivalya)", categorySlug: "businessman", comment: "Co-Founders, Zepto — Quick Commerce Disruptors" },
-  { name: "Kunal Shah", categorySlug: "businessman", comment: "Founder, CRED — Fintech Visionary" },
-
-  // ───────── CELEBRITIES ─────────
-  { name: "Virat Kohli", categorySlug: "celebrity", comment: "Cricket Star & Brand Icon" },
-  { name: "Anushka Sharma", categorySlug: "celebrity", comment: "Actress, Producer & Style Icon" },
-  { name: "Karan Johar", categorySlug: "celebrity", comment: "Bollywood Director, Producer & Host" },
-  { name: "Sonam Kapoor", categorySlug: "celebrity", comment: "Fashion Icon & Actress" },
-  { name: "Hrithik Roshan", categorySlug: "celebrity", comment: "Bollywood's Greek God" },
-  { name: "Disha Patani", categorySlug: "celebrity", comment: "Actress & Social Media Sensation" },
-  { name: "Urvashi Rautela", categorySlug: "celebrity", comment: "Actress & Miss Universe India" },
-  { name: "Kapil Sharma", categorySlug: "celebrity", comment: "India's Most Popular Stand-Up Comedian & Host" },
-  { name: "Badshah", categorySlug: "celebrity", comment: "Indian Rapper & Music Producer" },
-  { name: "Diljit Dosanjh", categorySlug: "celebrity", comment: "Punjabi Singer & Bollywood Actor" },
-  { name: "Neha Kakkar", categorySlug: "celebrity", comment: "Popular Indian Playback Singer" },
-  { name: "AR Rahman", categorySlug: "celebrity", comment: "Oscar-Winning Music Composer" },
-  { name: "Arijit Singh", categorySlug: "celebrity", comment: "India's Most Loved Playback Singer" },
-  { name: "Tamannaah Bhatia", categorySlug: "celebrity", comment: "South & Bollywood Actress & Style Star" },
-  { name: "Sonu Sood", categorySlug: "celebrity", comment: "Actor & Real-Life Hero (COVID relief)" },
-
-  // ───────── YOUTUBERS ─────────
-  { name: "CarryMinati (Ajey Nagar)", categorySlug: "youtuber", comment: "India's #1 Roaster & YouTuber" },
-  { name: "BB Ki Vines (Bhuvan Bam)", categorySlug: "youtuber", comment: "Pioneer of Indian YouTube Comedy" },
-  { name: "Ashish Chanchlani", categorySlug: "youtuber", comment: "Comedy YouTuber & Actor" },
-  { name: "Technical Guruji (Gaurav Chaudhary)", categorySlug: "youtuber", comment: "India's Biggest Tech YouTuber" },
-  { name: "Sandeep Maheshwari", categorySlug: "youtuber", comment: "Motivational Speaker & Life Coach" },
-  { name: "Amit Bhadana", categorySlug: "youtuber", comment: "Most Subscribed Indian YouTuber (Hindi)" },
-  { name: "Vivek Bindra", categorySlug: "youtuber", comment: "Business Coach & Motivational YouTuber" },
-  { name: "Dhruv Rathee", categorySlug: "youtuber", comment: "Political & Social Commentary YouTuber" },
-  { name: "Nikhil Sharma (Mumbiker Nikhil)", categorySlug: "youtuber", comment: "Travel & Lifestyle Vlogger" },
-  { name: "Triggered Insaan (Nischay Malhan)", categorySlug: "youtuber", comment: "Reaction & Comedy YouTuber" },
-  { name: "Ranveer Allahbadia (BeerBiceps)", categorySlug: "youtuber", comment: "Podcast Host & Mindset Coach" },
-  { name: "Prajakta Koli (MostlySane)", categorySlug: "youtuber", comment: "Female Comedy Creator & Netflix Actor" },
-  { name: "Elvish Yadav", categorySlug: "youtuber", comment: "Comedy YouTuber & Bigg Boss OTT Winner" },
-  { name: "Ajju Bhai (Total Gaming)", categorySlug: "youtuber", comment: "India's Biggest Gaming YouTuber" },
-  { name: "Nikunj Lotia (Be YouNick)", categorySlug: "youtuber", comment: "Comedy Sketch & Entertainment Creator" },
-
   // ───────── CRICKETERS ─────────
   { name: "Virat Kohli", categorySlug: "cricketer", comment: "Former Indian Captain & Run Machine" },
   { name: "Rohit Sharma", categorySlug: "cricketer", comment: "Indian T20 World Cup Winning Captain" },
@@ -167,23 +98,6 @@ const CELEBS: CelebEntry[] = [
   { name: "Rishabh Pant", categorySlug: "cricketer", comment: "India's Star Wicketkeeper-Batsman" },
   { name: "Mohammed Siraj", categorySlug: "cricketer", comment: "India's Ace Fast Bowler" },
   { name: "Smriti Mandhana", categorySlug: "cricketer", comment: "India Women's Cricket Star" },
-
-  // ───────── ATHLETES ─────────
-  { name: "Neeraj Chopra", categorySlug: "athlete", comment: "Olympic Gold Medallist — Javelin Throw" },
-  { name: "PV Sindhu", categorySlug: "athlete", comment: "2x Olympic Badminton Medallist" },
-  { name: "Mary Kom", categorySlug: "athlete", comment: "6x World Boxing Champion & Olympian" },
-  { name: "Bajrang Punia", categorySlug: "athlete", comment: "Olympic Bronze Medallist — Wrestling" },
-  { name: "Saina Nehwal", categorySlug: "athlete", comment: "Former World #1 Badminton Player" },
-  { name: "Mirabai Chanu", categorySlug: "athlete", comment: "Olympic Silver Medallist — Weightlifting" },
-  { name: "Kidambi Srikanth", categorySlug: "athlete", comment: "Former World #1 Badminton Player" },
-  { name: "Vinesh Phogat", categorySlug: "athlete", comment: "Top Indian Wrestler & Arjuna Awardee" },
-  { name: "Sumit Antil", categorySlug: "athlete", comment: "Paralympic Gold Medallist — Javelin" },
-  { name: "Lovlina Borgohain", categorySlug: "athlete", comment: "Olympic Bronze Medallist — Boxing" },
-  { name: "Abhinav Bindra", categorySlug: "athlete", comment: "India's First Individual Olympic Gold Medallist" },
-  { name: "Dutee Chand", categorySlug: "athlete", comment: "India's Fastest Female Sprinter" },
-  { name: "Sunil Chhetri", categorySlug: "athlete", comment: "India's Football Captain & Legendary Striker" },
-  { name: "Rohan Bopanna", categorySlug: "athlete", comment: "India's Top Tennis Player" },
-  { name: "PR Sreejesh", categorySlug: "athlete", comment: "Olympic Bronze Medallist — Hockey Goalkeeper" },
 ];
 
 async function seed() {
