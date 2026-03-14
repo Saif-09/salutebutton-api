@@ -36,6 +36,9 @@ console.log("ENV check — PORT:", PORT, "CORS_ORIGINS:", CORS_ORIGINS, "MONGODB
 
 // ──────────── Security Middleware ────────────
 
+// Trust the first proxy (Render, Railway, etc.) so rate-limit sees real client IPs
+app.set("trust proxy", 1);
+
 // Helmet — sets secure HTTP headers (XSS protection, no sniff, HSTS, etc.)
 app.use(
   helmet({
