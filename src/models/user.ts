@@ -5,6 +5,8 @@ export interface IUser {
   phone: string;
   passcode: string; // bcrypt hash
   token: string;
+  securityQuestion: string;
+  securityAnswer: string; // bcrypt hash
 }
 
 const UserSchema = new Schema<IUser>(
@@ -13,6 +15,8 @@ const UserSchema = new Schema<IUser>(
     phone: { type: String, required: true, unique: true },
     passcode: { type: String, required: true },
     token: { type: String, required: true, unique: true },
+    securityQuestion: { type: String, required: true },
+    securityAnswer: { type: String, required: true },
   },
   { timestamps: true },
 );
