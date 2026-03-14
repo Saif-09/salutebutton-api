@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { Celeb } from "../models/celeb";
 import { requireAuth } from "../middleware/auth";
+import { getIO } from "../socket";
 
 export const celebsRouter = Router();
 
@@ -67,6 +68,13 @@ celebsRouter.patch(
         res.status(404).json({ error: "Celeb not found" });
         return;
       }
+
+      // Broadcast the updated counts to all connected clients
+      getIO().emit("celeb-reaction", {
+        celebId: celeb._id,
+        respectors: celeb.respectors,
+        dispiters: celeb.dispiters,
+      });
 
       res.json(celeb);
     } catch {

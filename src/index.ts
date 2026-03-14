@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import http from "http";
 import path from "path";
 import express from "express";
 import cors from "cors";
@@ -8,6 +9,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoose from "mongoose";
 import multer from "multer";
+import { initSocket } from "./socket";
 import { v2 as cloudinary } from "cloudinary";
 import { celebsRouter } from "./routes/celebs";
 import { categoriesRouter } from "./routes/categories";
@@ -17,6 +19,7 @@ import { groupsRouter } from "./routes/groups";
 import { requireAuth } from "./middleware/auth";
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
 // CORS_ORIGIN supports comma-separated origins: "https://app.com,http://localhost:3000"
@@ -42,6 +45,10 @@ app.use(
 
 // CORS — restrict to known origins
 app.use(cors({ origin: CORS_ORIGINS, credentials: true }));
+
+// ──────────── Socket.IO ────────────
+
+initSocket(server, CORS_ORIGINS);
 
 // Body size limits — prevent payload flooding
 app.use(express.json({ limit: "100kb" }));
@@ -182,7 +189,7 @@ mongoose
   .connect(MONGODB_URI, { bufferCommands: false })
   .then(() => {
     console.log("Connected to MongoDB");
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`API server running on http://localhost:${PORT}`);
     });
   })

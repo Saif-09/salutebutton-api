@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { Group } from "../models/group";
 import { User } from "../models/user";
 import { requireAuth } from "../middleware/auth";
+import { getIO } from "../socket";
 
 export const groupsRouter = Router();
 
@@ -297,6 +298,15 @@ groupsRouter.patch("/:id/profiles/:profileId/reactions", async (req, res) => {
     profile[field] += delta;
 
     await group.save();
+
+    // Broadcast to all clients viewing this group
+    getIO().emit("group-reaction", {
+      groupId: req.params.id,
+      profileId: req.params.profileId,
+      respectors: profile.respectors,
+      dispiters: profile.dispiters,
+    });
+
     res.json(profile);
   } catch {
     res.status(500).json({ error: "Failed to update reaction" });
