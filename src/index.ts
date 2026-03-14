@@ -18,8 +18,15 @@ import { requireAuth } from "./middleware/auth";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI!;
+const MONGODB_URI = process.env.MONGODB_URI;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:3000";
+
+if (!MONGODB_URI) {
+  console.error("FATAL: MONGODB_URI environment variable is not set");
+  process.exit(1);
+}
+
+console.log("ENV check — PORT:", PORT, "CORS_ORIGIN:", CORS_ORIGIN, "MONGODB_URI set:", !!MONGODB_URI);
 
 // ──────────── Security Middleware ────────────
 
