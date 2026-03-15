@@ -10,7 +10,8 @@ const MONGODB_URI = process.env.MONGODB_URI!;
 const CATEGORIES = [
   { name: "Politician", slug: "politician", order: 1 },
   { name: "Cricketer", slug: "cricketer", order: 2 },
-  { name: "Actor", slug: "actor", order: 3 },
+  { name: "IPL Team", slug: "ipl-team", order: 3 },
+  { name: "Actor", slug: "actor", order: 4 },
 ];
 
 function avatar(name: string) {
@@ -41,6 +42,16 @@ const WIKI_NAMES: Record<string, string> = {
   "KL Rahul": "KL Rahul",
   "KCR": "K. Chandrashekar Rao",
   "JP Nadda": "Jagat Prakash Nadda",
+  "Chennai Super Kings": "Chennai Super Kings",
+  "Delhi Capitals": "Delhi Capitals",
+  "Gujarat Titans": "Gujarat Titans",
+  "Kolkata Knight Riders": "Kolkata Knight Riders",
+  "Lucknow Super Giants": "Lucknow Super Giants",
+  "Mumbai Indians": "Mumbai Indians",
+  "Punjab Kings": "Punjab Kings",
+  "Rajasthan Royals": "Rajasthan Royals",
+  "Royal Challengers Bengaluru": "Royal Challengers Bangalore",
+  "Sunrisers Hyderabad": "Sunrisers Hyderabad",
 };
 
 type CelebEntry = {
@@ -153,6 +164,18 @@ const CELEBS: CelebEntry[] = [
   { name: "Prasidh Krishna", categorySlug: "cricketer", comment: "Tall Indian Fast Bowler" },
   { name: "Sai Sudharsan", categorySlug: "cricketer", comment: "Emerging Indian Batsman" },
   { name: "Akash Deep", categorySlug: "cricketer", comment: "India's Rising Pace Bowler" },
+
+  // ───────── IPL TEAMS ─────────
+  { name: "Chennai Super Kings", categorySlug: "ipl-team", comment: "5× Champions (2010, 2011, 2018, 2021, 2023) — Whistle Podu!" },
+  { name: "Mumbai Indians", categorySlug: "ipl-team", comment: "5× Champions (2013, 2015, 2017, 2019, 2020) — Duniya Hila Denge" },
+  { name: "Kolkata Knight Riders", categorySlug: "ipl-team", comment: "3× Champions (2012, 2014, 2024) — Korbo Lorbo Jeetbo" },
+  { name: "Royal Challengers Bengaluru", categorySlug: "ipl-team", comment: "1× Champions (2025) — Ee Sala Cup Namde!" },
+  { name: "Rajasthan Royals", categorySlug: "ipl-team", comment: "1× Champions (2008) — Inaugural IPL Winners" },
+  { name: "Sunrisers Hyderabad", categorySlug: "ipl-team", comment: "1× Champions (2016) — Orange Army" },
+  { name: "Gujarat Titans", categorySlug: "ipl-team", comment: "1× Champions (2022) — Won Title in Debut Season" },
+  { name: "Delhi Capitals", categorySlug: "ipl-team", comment: "IPL Finalists (2020) — Delhi's Pride" },
+  { name: "Punjab Kings", categorySlug: "ipl-team", comment: "Sadda Punjab — The Eternal Entertainers" },
+  { name: "Lucknow Super Giants", categorySlug: "ipl-team", comment: "Newest Franchise — Rising Force in IPL" },
 ];
 
 async function seed() {
