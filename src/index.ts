@@ -76,6 +76,15 @@ const authLimiter = rateLimit({
   message: { error: "Too many attempts, please try again later" },
 });
 
+// Rate limiter for forgot-passcode — 5 attempts per 15 minutes (separate from login)
+const forgotPasscodeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many reset attempts, please try again later" },
+});
+
 // Stricter rate limiter for uploads — 10 uploads per 15 minutes
 const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -146,6 +155,9 @@ app.post(
 );
 
 // ──────────── Routes ────────────
+
+// Forgot-passcode gets its own rate limiter (separate from login)
+app.use("/api/users/forgot-passcode", forgotPasscodeLimiter);
 
 // Auth routes get stricter rate limiting
 app.use("/api/users", authLimiter, usersRouter);

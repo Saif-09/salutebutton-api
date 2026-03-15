@@ -6,9 +6,35 @@ import { User } from "../models/user";
 export const usersRouter = Router();
 
 const MAX_USERNAME_LENGTH = 50;
-const MAX_PHONE_LENGTH = 20;
 const MAX_PASSCODE_LENGTH = 50;
 const MAX_SECURITY_ANSWER_LENGTH = 100;
+
+// Indian mobile: optional +91/91 prefix, then 10 digits starting with 6-9
+const INDIAN_PHONE_REGEX = /^(?:\+?91)?[6-9]\d{9}$/;
+
+function isValidIndianPhone(phone: string): boolean {
+  const cleaned = phone.replace(/[\s-]/g, "");
+  if (!INDIAN_PHONE_REGEX.test(cleaned)) return false;
+
+  // Extract last 10 digits for pattern checks
+  const digits = cleaned.slice(-10);
+
+  // Reject all same digit (6666666666, 9999999999, etc.)
+  if (/^(\d)\1{9}$/.test(digits)) return false;
+
+  // Reject repeating 2-digit pattern (9191919191, 8282828282, etc.)
+  if (/^(\d{2})\1{4}$/.test(digits)) return false;
+
+  // Reject one digit followed by all zeros (9000000000, 8000000000, etc.)
+  if (/^[6-9]0{9}$/.test(digits)) return false;
+
+  // Reject sequential digits (6789012345, etc.)
+  const seq = "0123456789012345";
+  const rseq = "9876543210987654";
+  if (seq.includes(digits) || rseq.includes(digits)) return false;
+
+  return true;
+}
 
 const SECURITY_QUESTIONS = [
   "What is your pet's name?",
@@ -49,8 +75,8 @@ usersRouter.post("/register", async (req: Request, res: Response) => {
       return;
     }
 
-    if (phone.trim().length > MAX_PHONE_LENGTH) {
-      res.status(400).json({ error: "Invalid phone number" });
+    if (!isValidIndianPhone(phone.trim())) {
+      res.status(400).json({ error: "Invalid Indian mobile number" });
       return;
     }
 
@@ -104,7 +130,7 @@ usersRouter.post("/login", async (req: Request, res: Response) => {
       return;
     }
 
-    if (phone.trim().length > MAX_PHONE_LENGTH || passcode.trim().length > MAX_PASSCODE_LENGTH) {
+    if (!isValidIndianPhone(phone.trim()) || passcode.trim().length > MAX_PASSCODE_LENGTH) {
       res.status(400).json({ error: "Invalid credentials" });
       return;
     }
@@ -151,8 +177,8 @@ usersRouter.post("/forgot-passcode/lookup", async (req: Request, res: Response) 
       return;
     }
 
-    if (phone.trim().length > MAX_PHONE_LENGTH) {
-      res.status(400).json({ error: "Invalid phone number" });
+    if (!isValidIndianPhone(phone.trim())) {
+      res.status(400).json({ error: "Invalid Indian mobile number" });
       return;
     }
 
@@ -179,7 +205,7 @@ usersRouter.post("/forgot-passcode", async (req: Request, res: Response) => {
       return;
     }
 
-    if (phone.trim().length > MAX_PHONE_LENGTH || securityAnswer.trim().length > MAX_SECURITY_ANSWER_LENGTH) {
+    if (!isValidIndianPhone(phone.trim()) || securityAnswer.trim().length > MAX_SECURITY_ANSWER_LENGTH) {
       res.status(400).json({ error: "Invalid input" });
       return;
     }
@@ -187,7 +213,7 @@ usersRouter.post("/forgot-passcode", async (req: Request, res: Response) => {
     const user = await User.findOne({ phone: phone.trim() });
     if (!user) {
       // Generic error to avoid phone enumeration
-      res.status(401).json({ error: "Invalid phone or security answer" });
+      res.status(400).json({ error: "Invalid phone or security answer" });
       return;
     }
 
@@ -198,7 +224,7 @@ usersRouter.post("/forgot-passcode", async (req: Request, res: Response) => {
 
     const match = await bcrypt.compare(securityAnswer.trim().toLowerCase(), user.securityAnswer);
     if (!match) {
-      res.status(401).json({ error: "Invalid phone or security answer" });
+      res.status(400).json({ error: "Invalid phone or security answer" });
       return;
     }
 
