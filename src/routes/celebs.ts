@@ -1,7 +1,16 @@
 import { Router, type Request, type Response } from "express";
+import rateLimit from "express-rate-limit";
 import { Celeb } from "../models/celeb";
-import { requireAuth } from "../middleware/auth";
 import { getIO } from "../socket";
+
+// Stricter rate limiter for anonymous voting — 30 votes per minute per IP
+const voteLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 80,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many votes, please slow down" },
+});
 
 export const celebsRouter = Router();
 
@@ -38,10 +47,10 @@ celebsRouter.get("/", async (req: Request, res: Response) => {
 });
 
 // PATCH /api/celebs/:id/reactions — increment salute/disrespect counts
-// Auth required — prevents anonymous vote manipulation
+// Public — common profiles (politicians, cricketers, actors, etc.) can be voted without login
 celebsRouter.patch(
   "/:id/reactions",
-  requireAuth,
+  voteLimiter,
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
