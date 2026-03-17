@@ -204,6 +204,28 @@ groupsRouter.get("/:id", async (req, res) => {
   }
 });
 
+// Delete a group (original creator only)
+groupsRouter.delete("/:id", async (req, res) => {
+  try {
+    const userId = getAuthUserId(req);
+    const group = await Group.findById(req.params.id);
+    if (!group) {
+      res.status(404).json({ error: "Group not found" });
+      return;
+    }
+
+    if (group.createdBy.toString() !== userId) {
+      res.status(403).json({ error: "Only the original admin can delete the group" });
+      return;
+    }
+
+    await Group.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Failed to delete group" });
+  }
+});
+
 // Leave a group
 groupsRouter.post("/:id/leave", async (req, res) => {
   try {
@@ -214,9 +236,32 @@ groupsRouter.post("/:id/leave", async (req, res) => {
       return;
     }
 
-    group.members = group.members.filter((m: any) => m.toString() !== userId);
-    await group.save();
+    const isMember = group.members.some((m: any) => m.toString() === userId);
+    if (!isMember) {
+      res.status(400).json({ error: "You are not a member of this group" });
+      return;
+    }
 
+    const isOriginalCreator = group.createdBy.toString() === userId;
+
+    if (isOriginalCreator) {
+      if (group.admins.length === 0) {
+        res.status(400).json({
+          error: "You must promote a member to admin or delete the group before leaving",
+        });
+        return;
+      }
+
+      // Transfer ownership to the first promoted admin (earliest promotion)
+      const newCreator = group.admins[0];
+      group.createdBy = newCreator;
+      group.admins = group.admins.slice(1);
+    }
+
+    group.members = group.members.filter((m: any) => m.toString() !== userId);
+    group.admins = group.admins.filter((a: any) => a.toString() !== userId);
+
+    await group.save();
     res.json({ success: true });
   } catch {
     res.status(500).json({ error: "Failed to leave group" });
@@ -305,6 +350,49 @@ groupsRouter.post("/:id/admins/:memberId", async (req, res) => {
     res.json(populated);
   } catch {
     res.status(500).json({ error: "Failed to promote member" });
+  }
+});
+
+// Demote an admin back to member (original creator only)
+groupsRouter.delete("/:id/admins/:memberId", async (req, res) => {
+  try {
+    const userId = getAuthUserId(req);
+    const { memberId } = req.params;
+    const group = await Group.findById(req.params.id);
+    if (!group) {
+      res.status(404).json({ error: "Group not found" });
+      return;
+    }
+
+    // Only the original creator can demote admins
+    if (group.createdBy.toString() !== userId) {
+      res.status(403).json({ error: "Only the original admin can demote admins" });
+      return;
+    }
+
+    // Cannot demote yourself (original creator)
+    if (memberId === userId) {
+      res.status(400).json({ error: "You cannot demote yourself" });
+      return;
+    }
+
+    // Target must currently be a promoted admin
+    const isPromoted = group.admins.some((a: any) => a.toString() === memberId);
+    if (!isPromoted) {
+      res.status(400).json({ error: "User is not a promoted admin" });
+      return;
+    }
+
+    group.admins = group.admins.filter((a: any) => a.toString() !== memberId);
+    await group.save();
+
+    const populated = await Group.findById(group._id)
+      .populate("createdBy", "username")
+      .populate("admins", "username")
+      .populate("members", "username");
+    res.json(populated);
+  } catch {
+    res.status(500).json({ error: "Failed to demote admin" });
   }
 });
 
