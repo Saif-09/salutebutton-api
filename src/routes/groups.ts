@@ -45,6 +45,12 @@ function getAuthUserId(req: any): string {
   return req.user._id.toString();
 }
 
+// Helper: check if a user is an admin (original creator OR promoted admin)
+function isGroupAdmin(group: any, userId: string): boolean {
+  if (group.createdBy.toString() === userId) return true;
+  return group.admins.some((a: any) => a.toString() === userId);
+}
+
 // Create a group (max 4 per user)
 groupsRouter.post("/create", async (req, res) => {
   try {
@@ -157,6 +163,7 @@ groupsRouter.get("/:id", async (req, res) => {
     const userId = getAuthUserId(req);
     const group = await Group.findById(req.params.id)
       .populate("createdBy", "username")
+      .populate("admins", "username")
       .populate("members", "username");
 
     if (!group) {
@@ -198,6 +205,91 @@ groupsRouter.post("/:id/leave", async (req, res) => {
   }
 });
 
+// Remove a member (any admin can remove members, but no one can remove the original creator)
+groupsRouter.delete("/:id/members/:memberId", async (req, res) => {
+  try {
+    const userId = getAuthUserId(req);
+    const { memberId } = req.params;
+    const group = await Group.findById(req.params.id);
+    if (!group) {
+      res.status(404).json({ error: "Group not found" });
+      return;
+    }
+
+    if (!isGroupAdmin(group, userId)) {
+      res.status(403).json({ error: "Only admins can remove members" });
+      return;
+    }
+
+    // Nobody can remove the original creator
+    if (memberId === group.createdBy.toString()) {
+      res.status(403).json({ error: "The original admin cannot be removed" });
+      return;
+    }
+
+    // Promoted admins cannot remove other admins — only the original creator can
+    const targetIsAdmin = group.admins.some((a: any) => a.toString() === memberId);
+    if (targetIsAdmin && group.createdBy.toString() !== userId) {
+      res.status(403).json({ error: "Only the original admin can remove other admins" });
+      return;
+    }
+
+    group.members = group.members.filter((m: any) => m.toString() !== memberId);
+    group.admins = group.admins.filter((a: any) => a.toString() !== memberId);
+    await group.save();
+
+    const populated = await Group.findById(group._id)
+      .populate("createdBy", "username")
+      .populate("admins", "username")
+      .populate("members", "username");
+    res.json(populated);
+  } catch {
+    res.status(500).json({ error: "Failed to remove member" });
+  }
+});
+
+// Promote a member to admin (any admin can promote, original creator cannot be re-promoted)
+groupsRouter.post("/:id/admins/:memberId", async (req, res) => {
+  try {
+    const userId = getAuthUserId(req);
+    const { memberId } = req.params;
+    const group = await Group.findById(req.params.id);
+    if (!group) {
+      res.status(404).json({ error: "Group not found" });
+      return;
+    }
+
+    if (!isGroupAdmin(group, userId)) {
+      res.status(403).json({ error: "Only admins can promote members" });
+      return;
+    }
+
+    // Target must be a member of the group
+    const targetIsMember = group.members.some((m: any) => m.toString() === memberId);
+    if (!targetIsMember) {
+      res.status(404).json({ error: "User is not a member of this group" });
+      return;
+    }
+
+    // Already an admin?
+    if (isGroupAdmin(group, memberId)) {
+      res.status(400).json({ error: "User is already an admin" });
+      return;
+    }
+
+    group.admins.push(memberId as any);
+    await group.save();
+
+    const populated = await Group.findById(group._id)
+      .populate("createdBy", "username")
+      .populate("admins", "username")
+      .populate("members", "username");
+    res.json(populated);
+  } catch {
+    res.status(500).json({ error: "Failed to promote member" });
+  }
+});
+
 // ========== PROFILES ==========
 
 // Add a profile (admin only, max 10)
@@ -211,8 +303,8 @@ groupsRouter.post("/:id/profiles", async (req, res) => {
       return;
     }
 
-    if (group.createdBy.toString() !== userId) {
-      res.status(403).json({ error: "Only the admin can add profiles" });
+    if (!isGroupAdmin(group, userId)) {
+      res.status(403).json({ error: "Only admins can add profiles" });
       return;
     }
 
@@ -251,6 +343,7 @@ groupsRouter.post("/:id/profiles", async (req, res) => {
 
     const populated = await Group.findById(group._id)
       .populate("createdBy", "username")
+      .populate("admins", "username")
       .populate("members", "username");
     res.status(201).json(populated);
   } catch {
@@ -268,8 +361,8 @@ groupsRouter.delete("/:id/profiles/:profileId", async (req, res) => {
       return;
     }
 
-    if (group.createdBy.toString() !== userId) {
-      res.status(403).json({ error: "Only the admin can delete profiles" });
+    if (!isGroupAdmin(group, userId)) {
+      res.status(403).json({ error: "Only admins can delete profiles" });
       return;
     }
 
@@ -280,6 +373,7 @@ groupsRouter.delete("/:id/profiles/:profileId", async (req, res) => {
 
     const populated = await Group.findById(group._id)
       .populate("createdBy", "username")
+      .populate("admins", "username")
       .populate("members", "username");
     res.json(populated);
   } catch {

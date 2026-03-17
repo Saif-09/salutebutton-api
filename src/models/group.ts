@@ -12,6 +12,7 @@ export interface IGroup {
   name: string;
   code: string;
   createdBy: mongoose.Types.ObjectId;
+  admins: mongoose.Types.ObjectId[];
   members: mongoose.Types.ObjectId[];
   profiles: IProfile[];
 }
@@ -32,6 +33,7 @@ const GroupSchema = new Schema<IGroup>(
     name: { type: String, required: true },
     code: { type: String, required: true, unique: true },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    admins: [{ type: Schema.Types.ObjectId, ref: "User" }],
     members: [{ type: Schema.Types.ObjectId, ref: "User" }],
     profiles: { type: [ProfileSchema], default: [] },
   },
