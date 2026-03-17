@@ -1,5 +1,6 @@
 import { Router } from "express";
 import crypto from "crypto";
+import mongoose from "mongoose";
 import { Group } from "../models/group";
 import { User } from "../models/user";
 import { requireAuth } from "../middleware/auth";
@@ -252,16 +253,25 @@ groupsRouter.post("/:id/leave", async (req, res) => {
         return;
       }
 
-      // Transfer ownership to the first promoted admin (earliest promotion)
-      const newCreator = group.admins[0];
-      group.createdBy = newCreator;
-      group.admins = group.admins.slice(1);
+      // Transfer ownership to the first promoted admin (earliest promotion).
+      // Use findByIdAndUpdate with $set so Mongoose reliably persists the createdBy change.
+      const newCreatorId = group.admins[0];
+      await Group.findByIdAndUpdate(group._id, {
+        $set: { createdBy: newCreatorId },
+        $pull: {
+          admins: newCreatorId,
+          members: new mongoose.Types.ObjectId(userId),
+        },
+      });
+      res.json({ success: true });
+      return;
     }
 
+    // Regular member or promoted admin leaving
     group.members = group.members.filter((m: any) => m.toString() !== userId);
     group.admins = group.admins.filter((a: any) => a.toString() !== userId);
-
     await group.save();
+
     res.json({ success: true });
   } catch {
     res.status(500).json({ error: "Failed to leave group" });
