@@ -12,6 +12,7 @@ const MAX_GROUPS_PER_USER = 4;
 // Public preview — no auth required (used for join-link landing page)
 groupsRouter.get("/preview/:code", async (req, res) => {
   try {
+    const { profileId } = req.query;
     const group = await Group.findOne({ code: req.params.code.toUpperCase() })
       .populate("createdBy", "username")
       .select("name code members createdBy profiles");
@@ -21,14 +22,31 @@ groupsRouter.get("/preview/:code", async (req, res) => {
       return;
     }
 
-    res.json({
+    const response: any = {
       _id: group._id,
       name: group.name,
       code: group.code,
       memberCount: group.members.length,
       profileCount: group.profiles.length,
       createdBy: (group.createdBy as any).username,
-    });
+    };
+
+    // If a profileId is requested, include that profile's public data for share previews
+    if (profileId && typeof profileId === "string") {
+      const profile = (group.profiles as any).id(profileId);
+      if (profile) {
+        response.profile = {
+          _id: profile._id,
+          name: profile.name,
+          description: profile.description,
+          image: profile.image,
+          respectors: profile.respectors,
+          dispiters: profile.dispiters,
+        };
+      }
+    }
+
+    res.json(response);
   } catch {
     res.status(500).json({ error: "Failed to fetch group preview" });
   }
