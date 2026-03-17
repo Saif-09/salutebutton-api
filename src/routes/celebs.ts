@@ -46,6 +46,24 @@ celebsRouter.get("/", async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/celebs/:id — single celeb by ID
+celebsRouter.get("/:id", async (req: Request, res: Response) => {
+  try {
+    const celeb = await Celeb.findById(req.params.id)
+      .populate("category", "name slug")
+      .lean();
+
+    if (!celeb) {
+      res.status(404).json({ error: "Celeb not found" });
+      return;
+    }
+
+    res.json(celeb);
+  } catch {
+    res.status(500).json({ error: "Failed to fetch celeb" });
+  }
+});
+
 // PATCH /api/celebs/:id/reactions — increment salute/disrespect counts
 // Public — common profiles (politicians, cricketers, actors, etc.) can be voted without login
 celebsRouter.patch(
