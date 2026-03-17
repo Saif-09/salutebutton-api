@@ -8,6 +8,31 @@ import { getIO } from "../socket";
 export const groupsRouter = Router();
 
 const MAX_GROUPS_PER_USER = 4;
+
+// Public preview — no auth required (used for join-link landing page)
+groupsRouter.get("/preview/:code", async (req, res) => {
+  try {
+    const group = await Group.findOne({ code: req.params.code.toUpperCase() })
+      .populate("createdBy", "username")
+      .select("name code members createdBy profiles");
+
+    if (!group) {
+      res.status(404).json({ error: "Group not found" });
+      return;
+    }
+
+    res.json({
+      _id: group._id,
+      name: group.name,
+      code: group.code,
+      memberCount: group.members.length,
+      profileCount: group.profiles.length,
+      createdBy: (group.createdBy as any).username,
+    });
+  } catch {
+    res.status(500).json({ error: "Failed to fetch group preview" });
+  }
+});
 const MAX_PROFILES_PER_GROUP = 10;
 const MAX_NAME_LENGTH = 100;
 const MAX_DESCRIPTION_LENGTH = 500;
