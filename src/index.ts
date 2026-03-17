@@ -2,13 +2,13 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import http from "http";
-import path from "path";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoose from "mongoose";
 import multer from "multer";
+import sharp from "sharp";
 import { initSocket } from "./socket";
 import { v2 as cloudinary } from "cloudinary";
 import { celebsRouter } from "./routes/celebs";
@@ -115,7 +115,7 @@ cloudinary.config({
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB — sharp will compress it server-side
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith("image/")) cb(null, true);
     else cb(new Error("Only images are allowed"));
@@ -134,6 +134,12 @@ app.post(
       return;
     }
     try {
+      // Compress and resize before uploading — max 1200px wide, JPEG at 80% quality
+      const compressed = await sharp(req.file!.buffer)
+        .resize({ width: 1200, withoutEnlargement: true })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+
       const result = await new Promise<{ secure_url: string }>(
         (resolve, reject) => {
           cloudinary.uploader
@@ -144,7 +150,7 @@ app.post(
                 else resolve(result);
               },
             )
-            .end(req.file!.buffer);
+            .end(compressed);
         },
       );
       res.json({ url: result.secure_url });
@@ -186,7 +192,11 @@ app.use(
     res: express.Response,
     _next: express.NextFunction,
   ) => {
-    // Multer file size error
+    // Multer errors
+    if ((err as any).code === "LIMIT_FILE_SIZE") {
+      res.status(400).json({ error: "Image is too large. Maximum size is 15MB" });
+      return;
+    }
     if (err.message === "Only images are allowed") {
       res.status(400).json({ error: "Only image files are allowed" });
       return;
