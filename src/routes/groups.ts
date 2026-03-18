@@ -27,6 +27,7 @@ groupsRouter.get("/preview/:code", async (req, res) => {
       _id: group._id,
       name: group.name,
       code: group.code,
+      isPublic: group.isPublic ?? false,
       memberCount: group.members.length,
       profileCount: group.profiles.length,
       createdBy: (group.createdBy as any).username,
@@ -52,6 +53,31 @@ groupsRouter.get("/preview/:code", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch group preview" });
   }
 });
+// List public groups — no auth required
+groupsRouter.get("/public", async (req, res) => {
+  try {
+    const groups = await Group.find({ isPublic: true })
+      .populate("createdBy", "username")
+      .select("name code isPublic members profiles createdBy createdAt")
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    const result = groups.map((g) => ({
+      _id: g._id,
+      name: g.name,
+      code: g.code,
+      isPublic: true,
+      memberCount: g.members.length,
+      profileCount: g.profiles.length,
+      createdBy: (g.createdBy as any).username,
+    }));
+
+    res.json(result);
+  } catch {
+    res.status(500).json({ error: "Failed to fetch public groups" });
+  }
+});
+
 const MAX_PROFILES_PER_GROUP = 10;
 const MAX_NAME_LENGTH = 100;
 const MAX_DESCRIPTION_LENGTH = 500;
@@ -74,7 +100,7 @@ function isGroupAdmin(group: any, userId: string): boolean {
 groupsRouter.post("/create", async (req, res) => {
   try {
     const userId = getAuthUserId(req);
-    const { name } = req.body;
+    const { name, isPublic } = req.body;
 
     if (!name?.trim()) {
       res.status(400).json({ error: "Group name is required" });
@@ -105,6 +131,7 @@ groupsRouter.post("/create", async (req, res) => {
     const group = await Group.create({
       name: name.trim(),
       code,
+      isPublic: isPublic === true,
       createdBy: userId,
       members: [userId],
       profiles: [],
@@ -130,6 +157,38 @@ groupsRouter.post("/join", async (req, res) => {
     const group = await Group.findOne({ code: code.trim().toUpperCase() });
     if (!group) {
       res.status(404).json({ error: "Group not found" });
+      return;
+    }
+
+    const alreadyMember = group.members.some(
+      (m: any) => m.toString() === userId,
+    );
+    if (alreadyMember) {
+      res.status(400).json({ error: "You are already in this group" });
+      return;
+    }
+
+    group.members.push(userId as any);
+    await group.save();
+
+    res.json(group);
+  } catch {
+    res.status(500).json({ error: "Failed to join group" });
+  }
+});
+
+// Join a public group by ID (no code needed)
+groupsRouter.post("/join/:groupId", async (req, res) => {
+  try {
+    const userId = getAuthUserId(req);
+    const group = await Group.findById(req.params.groupId);
+    if (!group) {
+      res.status(404).json({ error: "Group not found" });
+      return;
+    }
+
+    if (!group.isPublic) {
+      res.status(403).json({ error: "This group is private. Use an invite code to join." });
       return;
     }
 

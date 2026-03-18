@@ -11,6 +11,7 @@ export interface IProfile {
 export interface IGroup {
   name: string;
   code: string;
+  isPublic: boolean;
   createdBy: mongoose.Types.ObjectId;
   admins: mongoose.Types.ObjectId[];
   members: mongoose.Types.ObjectId[];
@@ -32,6 +33,7 @@ const GroupSchema = new Schema<IGroup>(
   {
     name: { type: String, required: true },
     code: { type: String, required: true, unique: true },
+    isPublic: { type: Boolean, default: false },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
     admins: [{ type: Schema.Types.ObjectId, ref: "User" }],
     members: [{ type: Schema.Types.ObjectId, ref: "User" }],
