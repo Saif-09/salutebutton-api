@@ -5,6 +5,7 @@ import { Group } from "../models/group";
 import { User } from "../models/user";
 import { requireAuth } from "../middleware/auth";
 import { getIO } from "../socket";
+import { pingIndexNow } from "../lib/indexnow";
 
 export const groupsRouter = Router();
 
@@ -136,6 +137,9 @@ groupsRouter.post("/create", async (req, res) => {
       members: [userId],
       profiles: [],
     });
+
+    // Notify search engines about the new group page
+    pingIndexNow([`/group/${group._id}`]);
 
     res.status(201).json(group);
   } catch {
@@ -515,6 +519,9 @@ groupsRouter.post("/:id/profiles", async (req, res) => {
       dispiters: 0,
     });
     await group.save();
+
+    // Notify search engines about the updated group page
+    pingIndexNow([`/group/${req.params.id}`]);
 
     const populated = await Group.findById(group._id)
       .populate("createdBy", "username")
