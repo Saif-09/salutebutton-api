@@ -2,6 +2,8 @@ import { Router, type Request, type Response } from "express";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { User } from "../models/user";
+import { Group } from "../models/group";
+import { requireAuth } from "../middleware/auth";
 
 export const usersRouter = Router();
 
@@ -243,5 +245,45 @@ usersRouter.post("/forgot-passcode", async (req: Request, res: Response) => {
     });
   } catch {
     res.status(500).json({ error: "Failed to reset passcode" });
+  }
+});
+
+// GET /api/users/me — authenticated user profile with group stats
+usersRouter.get("/me", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user._id.toString();
+    const user = await User.findById(userId).select("username phone createdAt").lean();
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    // Get all groups the user is a member of
+    const groups = await Group.find({ members: userId })
+      .select("_id name isPublic createdBy")
+      .lean();
+
+    const totalGroups = groups.length;
+    const publicGroups = groups.filter((g) => g.isPublic).length;
+    const privateGroups = totalGroups - publicGroups;
+
+    const createdGroups = groups.filter((g) => g.createdBy.toString() === userId);
+
+    res.json({
+      _id: userId,
+      username: user.username,
+      phone: user.phone,
+      createdAt: user.createdAt,
+      groups: {
+        total: totalGroups,
+        public: publicGroups,
+        private: privateGroups,
+        hasGroups: totalGroups > 0,
+        created: createdGroups.map((g) => ({ _id: g._id, name: g.name })),
+        createdCount: createdGroups.length,
+      },
+    });
+  } catch {
+    res.status(500).json({ error: "Failed to fetch profile" });
   }
 });

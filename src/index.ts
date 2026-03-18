@@ -211,7 +211,11 @@ app.use(
 // ──────────── Start Server ────────────
 
 mongoose
-  .connect(MONGODB_URI, { bufferCommands: false })
+  .connect(MONGODB_URI, {
+    bufferCommands: false,
+    serverSelectionTimeoutMS: 10000, // wait up to 10s for reconnection before failing
+    socketTimeoutMS: 45000,         // close idle sockets after 45s
+  })
   .then(() => {
     console.log("Connected to MongoDB");
     server.listen(PORT, () => {
@@ -222,3 +226,7 @@ mongoose
     console.error("MongoDB connection failed:", err.message);
     process.exit(1);
   });
+
+// Log MongoDB connection state changes
+mongoose.connection.on("disconnected", () => console.warn("MongoDB disconnected — will auto-reconnect"));
+mongoose.connection.on("reconnected", () => console.log("MongoDB reconnected"));

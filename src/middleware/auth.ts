@@ -33,6 +33,9 @@ export async function requireAuth(
     (req as any).user = user;
     next();
   } catch {
-    res.status(401).json({ error: "Authentication failed" });
+    // Return 500 for server/DB errors — NOT 401.
+    // Returning 401 here causes the frontend to clear the session
+    // even when the token is valid but the DB is temporarily unreachable.
+    res.status(500).json({ error: "Server error during authentication" });
   }
 }
