@@ -17,6 +17,28 @@ const WIKI_NAMES: Record<string, string> = {
 const MANUAL_IMAGES: Record<string, string> = {
   "Mamata Banerjee":
     "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Official_portrait_of_Mamata_Banerjee.jpg/330px-Official_portrait_of_Mamata_Banerjee.jpg",
+  "Chandrashekhar Azad":
+    "https://akm-img-a-in.tosshub.com/aajtak/images/story/202406/665d31f53465d-chandra-shekhar-azadjpeg-030107930-16x9.jpeg?size=948:533",
+  "Tilak Varma":
+    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQXjWJQaXQtU58EGT5YiXAabERRKyqrcXhQBc5aNgapUW5NavNHSj1b5eJuu3kDRg2H5zgXLjA2GMBxmLvvyZ1Jrr2DhDk7hslSItApLtAe&s=10",
+  "Rinku Singh":
+    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQJKRKQ_J3-pKCmEx5dk786HT2pxzDt-alTNx64LP8EoNJy3N-BQxXFvsK2mjQfZ-guFNHG5XGC0hMhoE5kC1HlxaKI9ERYLCJJjkyQ20K2&s=10",
+  "Varun Chakaravarthy":
+    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSh9deNfFBXgVHe1PrkI5emOukyBwa0GEQ0PCvT0u75h2luANfWJ-PY2PibUh6fUYIS36vl9WBf2_7AYSIXJ3CE3Kkr7SfAl9GttzJ7sA&s=10",
+  "Ravi Bishnoi":
+    "https://documents.bcci.tv/resizedimageskirti/11084_compress.png",
+  "Abhishek Sharma":
+    "https://documents.bcci.tv/playerheadshot/bcci/1000*1280/11099.png",
+  "Dhruv Jurel":
+    "https://documents.bcci.tv/resizedimageskirti/11097_compress.png",
+  "Harshit Rana":
+    "https://bcciplayerimages-v2.s3.amazonaws.com/resizedimageskirti/11108_compress.png",
+  "Prasidh Krishna":
+    "https://documents.bcci.tv/resizedimageskirti/11092_compress.png",
+  "Sai Sudharsan":
+    "https://documents.iplt20.com/ipl/IPLHeadshot2025/976.png",
+  "Akash Deep":
+    "https://bcciplayerimages-v2.s3.amazonaws.com/resizedimageskirti/11107_compress.png",
 };
 
 async function fetchWikiImage(name: string): Promise<string | null> {
