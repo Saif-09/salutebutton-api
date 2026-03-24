@@ -13,6 +13,12 @@ const WIKI_NAMES: Record<string, string> = {
   "Royal Challengers Bengaluru": "Royal Challengers Bangalore",
 };
 
+// Manual image overrides for celebs whose Wikipedia/Wikimedia images are broken
+const MANUAL_IMAGES: Record<string, string> = {
+  "Mamata Banerjee":
+    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRsSl6FRW03uR0_kiAslbOgBObWWumCjvsPmKrFwcDr_0gDEhX5LXCbREcPOetdwClc06DUvu2slXymixbFiY4mEHNYJdWfgu3KYz553elJ&s=10",
+};
+
 async function fetchWikiImage(name: string): Promise<string | null> {
   try {
     const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`;
@@ -89,8 +95,10 @@ celebsRouter.post("/refresh-images", async (_req: Request, res: Response) => {
       const broken = await isImageBroken(celeb.image);
       if (!broken) continue;
 
-      const wikiName = WIKI_NAMES[celeb.name] ?? celeb.name;
-      const newImage = await fetchWikiImage(wikiName);
+      // Use manual override if available, otherwise try Wikipedia
+      const newImage =
+        MANUAL_IMAGES[celeb.name] ??
+        await fetchWikiImage(WIKI_NAMES[celeb.name] ?? celeb.name);
       if (!newImage) continue;
 
       await Celeb.findByIdAndUpdate(celeb._id, { image: newImage });
