@@ -114,7 +114,8 @@ celebsRouter.post("/refresh-images", async (_req: Request, res: Response) => {
     const results: { name: string; old: string; new: string }[] = [];
 
     for (const celeb of celebs) {
-      const broken = await isImageBroken(celeb.image);
+      const isFallback = celeb.image.includes("ui-avatars.com");
+      const broken = isFallback || await isImageBroken(celeb.image);
       if (!broken) continue;
 
       // Use manual override if available, otherwise try Wikipedia
