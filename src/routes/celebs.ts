@@ -16,7 +16,7 @@ const WIKI_NAMES: Record<string, string> = {
 // Manual image overrides for celebs whose Wikipedia/Wikimedia images are broken
 const MANUAL_IMAGES: Record<string, string> = {
   "Mamata Banerjee":
-    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRsSl6FRW03uR0_kiAslbOgBObWWumCjvsPmKrFwcDr_0gDEhX5LXCbREcPOetdwClc06DUvu2slXymixbFiY4mEHNYJdWfgu3KYz553elJ&s=10",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Official_portrait_of_Mamata_Banerjee.jpg/330px-Official_portrait_of_Mamata_Banerjee.jpg",
 };
 
 async function fetchWikiImage(name: string): Promise<string | null> {
