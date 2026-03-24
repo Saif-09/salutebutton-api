@@ -60,6 +60,236 @@ type CelebEntry = {
   comment: string;
 };
 
+/** Random integer in [min, max] (inclusive) */
+function rand(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+/**
+ * Popularity tiers for politicians — higher tier = more initial votes.
+ * Tier 1: National icons / PM-level        → respectors 8k-15k, dispiters 3k-7k
+ * Tier 2: Major national leaders / CMs      → respectors 4k-8k,  dispiters 1.5k-4k
+ * Tier 3: Senior ministers / state leaders   → respectors 1.5k-4k, dispiters 500-2k
+ * Tier 4: Emerging / niche leaders           → respectors 300-1.5k, dispiters 100-800
+ */
+type Tier = 1 | 2 | 3 | 4;
+
+/**
+ * Fixed-order politicians get a specific base + small random offset
+ * so their ranking is guaranteed while still looking organic.
+ */
+const FIXED_ORDER_POLITICIANS: Record<string, { respectors: number; dispiters: number }> = {
+  "Narendra Modi":   { respectors: 15000, dispiters: 6500 },
+  "Rahul Gandhi":    { respectors: 13500, dispiters: 5800 },
+  "Yogi Adityanath": { respectors: 12000, dispiters: 5200 },
+  "Arvind Kejriwal": { respectors: 10500, dispiters: 4500 },
+  "Amit Shah":       { respectors: 9500,  dispiters: 4000 },
+};
+
+const POLITICIAN_TIERS: Record<string, Tier> = {
+  // ── Tier 1: National icons (after the fixed-order five) ──
+  "Droupadi Murmu": 1,
+  "Sonia Gandhi": 1,
+
+  // ── Tier 2: Major national leaders / prominent CMs ──
+  "Priyanka Gandhi": 2,
+  "Mamata Banerjee": 2,
+  "Nirmala Sitharaman": 2,
+  "Akhilesh Yadav": 2,
+  "Rajnath Singh": 2,
+  "S. Jaishankar": 2,
+  "Mallikarjun Kharge": 2,
+  "Sharad Pawar": 2,
+  "Mayawati": 2,
+  "Lalu Prasad Yadav": 2,
+  "Nitish Kumar": 2,
+  "Shashi Tharoor": 2,
+  "Chandrababu Naidu": 2,
+  "Smriti Irani": 2,
+  "Uddhav Thackeray": 2,
+  "Asaduddin Owaisi": 2,
+
+  // ── Tier 3: Senior ministers / state leaders ──
+  "MK Stalin": 3,
+  "Tejashwi Yadav": 3,
+  "Hemant Soren": 3,
+  "JP Nadda": 3,
+  "Nitin Gadkari": 3,
+  "Pinarayi Vijayan": 3,
+  "Omar Abdullah": 3,
+  "Himanta Biswa Sarma": 3,
+  "KCR": 3,
+  "Naveen Patnaik": 3,
+  "Eknath Shinde": 3,
+  "Ajit Pawar": 3,
+  "Jagan Mohan Reddy": 3,
+  "Ashok Gehlot": 3,
+  "Shivraj Singh Chouhan": 3,
+  "Piyush Goyal": 3,
+  "Subramanian Swamy": 3,
+  "Jyotiraditya Scindia": 3,
+  "Mehbooba Mufti": 3,
+  "Farooq Abdullah": 3,
+
+  // ── Tier 4: Emerging / niche leaders ──
+  "Chandrashekhar Azad": 4,
+  "Pushkar Singh Dhami": 4,
+  "Basavaraj Bommai": 4,
+  "Manohar Lal Khattar": 4,
+  "Prashant Kishor": 4,
+};
+
+function getVotesForPolitician(name: string): { respectors: number; dispiters: number } {
+  const fixed = FIXED_ORDER_POLITICIANS[name];
+  if (fixed) {
+    return {
+      respectors: fixed.respectors + rand(0, 400),
+      dispiters: fixed.dispiters + rand(0, 300),
+    };
+  }
+  const tier = POLITICIAN_TIERS[name] ?? 4;
+  switch (tier) {
+    case 1: return { respectors: rand(7000, 8500),  dispiters: rand(3000, 5000) };
+    case 2: return { respectors: rand(4000, 6500),   dispiters: rand(1500, 3500) };
+    case 3: return { respectors: rand(1500, 3500),   dispiters: rand(500, 1800) };
+    case 4: return { respectors: rand(300, 1500),    dispiters: rand(100, 800) };
+  }
+}
+
+/**
+ * Actor popularity tiers
+ * Tier 1: Mega superstars              → respectors 10k-18k, dispiters 2k-5k
+ * Tier 2: A-list stars                 → respectors 5k-10k,  dispiters 1k-3k
+ * Tier 3: Popular / rising stars       → respectors 2k-5k,   dispiters 500-2k
+ */
+const ACTOR_TIERS: Record<string, Tier> = {
+  // ── Tier 1: Mega superstars ──
+  "Shah Rukh Khan": 1,
+  "Amitabh Bachchan": 1,
+  "Salman Khan": 1,
+  "Rajinikanth": 1,
+  "Allu Arjun": 1,
+
+  // ── Tier 2: A-list stars ──
+  "Aamir Khan": 2,
+  "Deepika Padukone": 2,
+  "Ranveer Singh": 2,
+  "Priyanka Chopra": 2,
+  "Akshay Kumar": 2,
+  "Vijay (Thalapathy)": 2,
+  "Prabhas": 2,
+  "Ranbir Kapoor": 2,
+  "Alia Bhatt": 2,
+
+  // ── Tier 3: Popular ──
+  "Katrina Kaif": 3,
+};
+
+function getVotesForActor(name: string): { respectors: number; dispiters: number } {
+  const tier = ACTOR_TIERS[name] ?? 3;
+  switch (tier) {
+    case 1: return { respectors: rand(10000, 18000), dispiters: rand(2000, 5000) };
+    case 2: return { respectors: rand(5000, 10000),  dispiters: rand(1000, 3000) };
+    case 3: return { respectors: rand(2000, 5000),   dispiters: rand(500, 2000) };
+    default: return { respectors: rand(2000, 5000),  dispiters: rand(500, 2000) };
+  }
+}
+
+/**
+ * Cricketer popularity tiers
+ * Tier 1: Legends / mega icons         → respectors 12k-20k, dispiters 1k-4k
+ * Tier 2: Current top stars            → respectors 5k-12k,  dispiters 800-3k
+ * Tier 3: Established players          → respectors 2k-5k,   dispiters 300-1.5k
+ * Tier 4: Rising / newer players       → respectors 500-2k,  dispiters 100-800
+ */
+const CRICKETER_TIERS: Record<string, Tier> = {
+  // ── Tier 1: Legends / mega icons ──
+  "Virat Kohli": 1,
+  "Sachin Tendulkar": 1,
+  "MS Dhoni": 1,
+  "Rohit Sharma": 1,
+
+  // ── Tier 2: Current top stars ──
+  "Jasprit Bumrah": 2,
+  "Hardik Pandya": 2,
+  "Sourav Ganguly": 2,
+  "Yuvraj Singh": 2,
+  "Rishabh Pant": 2,
+  "Suryakumar Yadav": 2,
+  "KL Rahul": 2,
+  "Shubman Gill": 2,
+  "Ravindra Jadeja": 2,
+  "Smriti Mandhana": 2,
+
+  // ── Tier 3: Established players ──
+  "Yashasvi Jaiswal": 3,
+  "Mohammed Siraj": 3,
+  "Kuldeep Yadav": 3,
+  "Shreyas Iyer": 3,
+  "Axar Patel": 3,
+  "Sanju Samson": 3,
+  "Arshdeep Singh": 3,
+  "Rinku Singh": 3,
+
+  // ── Tier 4: Rising / newer players ──
+  "Tilak Varma": 4,
+  "Washington Sundar": 4,
+  "Varun Chakaravarthy": 4,
+  "Nitish Kumar Reddy": 4,
+  "Ruturaj Gaikwad": 4,
+  "Shivam Dube": 4,
+  "Ravi Bishnoi": 4,
+  "Abhishek Sharma": 4,
+  "Dhruv Jurel": 4,
+  "Harshit Rana": 4,
+  "Prasidh Krishna": 4,
+  "Sai Sudharsan": 4,
+  "Akash Deep": 4,
+};
+
+function getVotesForCricketer(name: string): { respectors: number; dispiters: number } {
+  const tier = CRICKETER_TIERS[name] ?? 4;
+  switch (tier) {
+    case 1: return { respectors: rand(12000, 20000), dispiters: rand(1000, 4000) };
+    case 2: return { respectors: rand(5000, 12000),  dispiters: rand(800, 3000) };
+    case 3: return { respectors: rand(2000, 5000),   dispiters: rand(300, 1500) };
+    case 4: return { respectors: rand(500, 2000),    dispiters: rand(100, 800) };
+  }
+}
+
+/**
+ * IPL Team popularity tiers
+ * Tier 1: Most popular / most titles   → respectors 15k-25k, dispiters 3k-8k
+ * Tier 2: Strong fanbases              → respectors 7k-15k,  dispiters 2k-5k
+ * Tier 3: Growing / newer franchises   → respectors 3k-7k,   dispiters 1k-3k
+ */
+const IPL_TIERS: Record<string, 1 | 2 | 3> = {
+  // ── Tier 1: Most popular ──
+  "Chennai Super Kings": 1,
+  "Mumbai Indians": 1,
+  "Royal Challengers Bengaluru": 1,
+  "Kolkata Knight Riders": 1,
+
+  // ── Tier 2: Strong fanbases ──
+  "Rajasthan Royals": 2,
+  "Sunrisers Hyderabad": 2,
+  "Delhi Capitals": 2,
+  "Punjab Kings": 2,
+
+  // ── Tier 3: Newer franchises ──
+  "Gujarat Titans": 3,
+  "Lucknow Super Giants": 3,
+};
+
+function getVotesForIPL(name: string): { respectors: number; dispiters: number } {
+  const tier = IPL_TIERS[name] ?? 3;
+  switch (tier) {
+    case 1: return { respectors: rand(15000, 25000), dispiters: rand(3000, 8000) };
+    case 2: return { respectors: rand(7000, 15000),  dispiters: rand(2000, 5000) };
+    case 3: return { respectors: rand(3000, 7000),   dispiters: rand(1000, 3000) };
+  }
+}
+
 const CELEBS: CelebEntry[] = [
   // ───────── POLITICIANS ─────────
   { name: "Narendra Modi", categorySlug: "politician", comment: "Prime Minister of India" },
@@ -209,12 +439,19 @@ async function seed() {
     if (wikiImage) found++;
     else fallback++;
 
+    const votes =
+      celeb.categorySlug === "politician" ? getVotesForPolitician(celeb.name) :
+      celeb.categorySlug === "actor"      ? getVotesForActor(celeb.name) :
+      celeb.categorySlug === "cricketer"  ? getVotesForCricketer(celeb.name) :
+      celeb.categorySlug === "ipl-team"   ? getVotesForIPL(celeb.name) :
+      { respectors: 0, dispiters: 0 };
+
     await Celeb.create({
       name: celeb.name,
       image,
       comment: celeb.comment,
-      respectors: 0,
-      dispiters: 0,
+      respectors: votes.respectors,
+      dispiters: votes.dispiters,
       category: categoryMap[celeb.categorySlug],
     });
 
