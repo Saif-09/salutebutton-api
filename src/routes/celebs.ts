@@ -170,7 +170,7 @@ celebsRouter.patch(
       }
 
       // Accept a delta count but cap it to prevent abuse
-      const delta = Math.min(Math.max(Math.floor(Number(count) || 1), 1), 50);
+      const delta = Math.min(Math.max(Math.floor(Number(count) || 1), 1), 100);
       const field = type === "respect" ? "respectors" : "dispiters";
 
       const celeb = await Celeb.findByIdAndUpdate(
