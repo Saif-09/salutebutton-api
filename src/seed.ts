@@ -8,26 +8,52 @@ import { Celeb } from "./models/celeb";
 const MONGODB_URI = process.env.MONGODB_URI!;
 
 const CATEGORIES = [
-  { name: "Politician", slug: "politician", order: 1 },
-  { name: "Cricketer", slug: "cricketer", order: 2 },
-  { name: "IPL Team", slug: "ipl-team", order: 3 },
-  { name: "Actor", slug: "actor", order: 4 },
+  { name: "Political Party", slug: "political-party", order: 1 },
+  { name: "Politician", slug: "politician", order: 2 },
+  { name: "Cricketer", slug: "cricketer", order: 3 },
+  { name: "IPL Team", slug: "ipl-team", order: 4 },
+  { name: "Actor", slug: "actor", order: 5 },
 ];
 
 function avatar(name: string) {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&size=500&background=random&bold=true&format=png`;
 }
 
-// Fetch image from Wikipedia API
+// Fetch image from Wikipedia — tries the REST summary endpoint first,
+// then falls back to the MediaWiki action API's pageimages prop.
 async function fetchWikiImage(name: string): Promise<string | null> {
+  const headers = { "User-Agent": "SaluteButton/1.0 (seed script)" };
+
+  // 1) REST summary endpoint (fast, returns thumbnail for most pages)
   try {
     const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(name)}`;
-    const res = await fetch(url, {
-      headers: { "User-Agent": "SaluteButton/1.0 (seed script)" },
-    });
+    const res = await fetch(url, { headers });
+    if (res.ok) {
+      const data: any = await res.json();
+      const hit = data?.thumbnail?.source ?? data?.originalimage?.source;
+      if (hit) return hit;
+    }
+  } catch {
+    /* fall through */
+  }
+
+  // 2) MediaWiki action API — explicitly asks for the page's lead image.
+  // Handles pages where the summary endpoint omits the thumbnail.
+  try {
+    const url =
+      `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*` +
+      `&prop=pageimages&piprop=original|thumbnail&pithumbsize=500` +
+      `&redirects=1&titles=${encodeURIComponent(name)}`;
+    const res = await fetch(url, { headers });
     if (!res.ok) return null;
     const data: any = await res.json();
-    return data?.thumbnail?.source ?? data?.originalimage?.source ?? null;
+    const pages = data?.query?.pages ?? {};
+    const first: any = Object.values(pages)[0];
+    return (
+      first?.original?.source ??
+      first?.thumbnail?.source ??
+      null
+    );
   } catch {
     return null;
   }
@@ -36,7 +62,6 @@ async function fetchWikiImage(name: string): Promise<string | null> {
 // Map of Wikipedia article names (for those whose names differ from article titles)
 const WIKI_NAMES: Record<string, string> = {
   "Vijay (Thalapathy)": "Vijay (actor)",
-  "MK Stalin": "M. K. Stalin",
   "Chandrashekhar Azad": "Chandrashekhar Aazad",
   "MS Dhoni": "MS Dhoni",
   "KL Rahul": "KL Rahul",
@@ -52,6 +77,86 @@ const WIKI_NAMES: Record<string, string> = {
   "Rajasthan Royals": "Rajasthan Royals",
   "Royal Challengers Bengaluru": "Royal Challengers Bangalore",
   "Sunrisers Hyderabad": "Sunrisers Hyderabad",
+
+  // Political Parties — Wikipedia article titles where they differ from display names
+  "BJP": "Bharatiya Janata Party",
+  "INC": "Indian National Congress",
+  "AAP": "Aam Aadmi Party",
+  "BSP": "Bahujan Samaj Party",
+  "CPI(M)": "Communist Party of India (Marxist)",
+  "NPP": "National People's Party (India)",
+  "CJP": "Cockroach Janta Party",
+  "TMC": "All India Trinamool Congress",
+  "DMK": "Dravida Munnetra Kazhagam",
+  "AIADMK": "All India Anna Dravida Munnetra Kazhagam",
+  "TDP": "Telugu Desam Party",
+  "YSRCP": "YSR Congress Party",
+  "Shiv Sena (UBT)": "Shiv Sena (UBT)",
+  "Shiv Sena": "Shiv Sena",
+  "NCP": "Nationalist Congress Party",
+  "NCP (SP)": "Nationalist Congress Party – Sharadchandra Pawar",
+  "SP": "Samajwadi Party",
+  "RJD": "Rashtriya Janata Dal",
+  "JD(U)": "Janata Dal (United)",
+  "BJD": "Biju Janata Dal",
+  "CPI": "Communist Party of India",
+  "SAD": "Shiromani Akali Dal",
+  "JKNC": "Jammu and Kashmir National Conference",
+  "PDP": "Jammu & Kashmir People's Democratic Party",
+  "BRS": "Bharat Rashtra Samithi",
+  "RLD": "Rashtriya Lok Dal",
+  "LJP": "Lok Janshakti Party",
+  "TVK": "Tamilaga Vettri Kazhagam",
+};
+
+/**
+ * Verified Wikimedia Commons URLs — short-circuits fetchWikiImage so we never
+ * depend on Wikipedia's REST summary endpoint, which intermittently omits
+ * thumbnails for political party pages. Add an entry here whenever an
+ * entry consistently falls back to a letter avatar.
+ */
+const EXPLICIT_IMAGES: Record<string, string> = {
+  // National parties
+  "BJP": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Logo_of_the_Bharatiya_Janata_Party.svg/500px-Logo_of_the_Bharatiya_Janata_Party.svg.png",
+  "INC": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/Indian_National_Congress_hand_logo.svg/500px-Indian_National_Congress_hand_logo.svg.png",
+  "AAP": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Aam_Aadmi_Party_logo_%28English%29.svg/500px-Aam_Aadmi_Party_logo_%28English%29.svg.png",
+  "BSP": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Elephant_Bahujan_Samaj_Party.svg/500px-Elephant_Bahujan_Samaj_Party.svg.png",
+  "CPI(M)": "https://upload.wikimedia.org/wikipedia/commons/d/d3/CPI%28M%29_Official_Logo.png",
+  "NPP": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Indian_Election_Symbol_Book.svg/500px-Indian_Election_Symbol_Book.svg.png",
+
+  // Regional parties
+  "TMC": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/All_India_Trinamool_Congress_logo_%283%29.svg/500px-All_India_Trinamool_Congress_logo_%283%29.svg.png",
+  "DMK": "https://upload.wikimedia.org/wikipedia/en/5/5e/Dravida_Munnetra_Kazhagam_logo.png",
+  "AIADMK": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Indian_Election_Symbol_Two_Leaves.svg/500px-Indian_Election_Symbol_Two_Leaves.svg.png",
+  "TVK": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/Indian_Election_Symbol_Whistle.svg/500px-Indian_Election_Symbol_Whistle.svg.png",
+  "TDP": "https://upload.wikimedia.org/wikipedia/commons/2/25/Indian_Election_Symbol_Cycle_%28cropped%29.png",
+  "YSRCP": "https://upload.wikimedia.org/wikipedia/commons/3/32/YSRCPLOGO.jpg",
+  "BRS": "https://upload.wikimedia.org/wikipedia/commons/5/59/Indian_Election_Symbol_Car.png",
+  "SP": "https://upload.wikimedia.org/wikipedia/commons/c/c3/Samajwadi_Party.png",
+  "RJD": "https://upload.wikimedia.org/wikipedia/en/2/27/RJD_Logo.jpg",
+  "JD(U)": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Janata_Dal_%28United%29_Flag.svg/500px-Janata_Dal_%28United%29_Flag.svg.png",
+  "BJD": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Biju_Janata_Dal_logo.svg/500px-Biju_Janata_Dal_logo.svg.png",
+  "Shiv Sena (UBT)": "https://upload.wikimedia.org/wikipedia/commons/c/c3/SS%28UBT%29_flag.png",
+  "Shiv Sena": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Indian_Election_Symbol_Bow_And_Arrow2.svg/500px-Indian_Election_Symbol_Bow_And_Arrow2.svg.png",
+  "NCP (SP)": "https://upload.wikimedia.org/wikipedia/commons/1/12/Indian_Election_Symbol_Man_Blowing_Turha.png",
+  "NCP": "https://upload.wikimedia.org/wikipedia/commons/e/e3/Ncp-logo.png",
+
+  // Other recognized parties
+  "CPI": "https://upload.wikimedia.org/wikipedia/commons/7/7a/CPI_symbol.svg",
+  "SAD": "https://upload.wikimedia.org/wikipedia/commons/c/c2/SAD_flag.svg",
+  "JKNC": "https://upload.wikimedia.org/wikipedia/commons/3/32/Flag_of_Jammu_and_Kashmir_%281936-1953%29.svg",
+  "PDP": "https://upload.wikimedia.org/wikipedia/commons/a/a0/Indian_Election_Symbol_Ink_Pot_and_Pen.png",
+  "RLD": "https://upload.wikimedia.org/wikipedia/commons/7/71/Rashtriya-Lok-Dal-620x413-1-620x400.jpg",
+  "LJP": "https://upload.wikimedia.org/wikipedia/commons/6/69/Ljp.gif",
+
+  // Satire
+  "CJP": "https://upload.wikimedia.org/wikipedia/commons/4/44/Cockroach_Janta_Party_%28icon%29.png",
+
+  // New CM portraits (helps the entries added in the 2026 update)
+  "C. Joseph Vijay": "https://upload.wikimedia.org/wikipedia/commons/6/66/The_official_portrait_of_C_Joseph_Vijay%2C_the_Chief_Minister_of_Tamilnadu.jpg",
+  "Suvendu Adhikari": "https://upload.wikimedia.org/wikipedia/commons/6/6e/Suvendu_Adhikari_at_Esplanade_Metro_Rail_Station%2C_Kolkata%2C_6_March_2024.jpg",
+  "Samrat Choudhary": "https://upload.wikimedia.org/wikipedia/commons/7/73/Chief_Minister_Samrat_Chaudhary%28cropped%29.jpg",
+  "N. Rangasamy": "https://upload.wikimedia.org/wikipedia/commons/7/71/N_Rangaswamy.jpg",
 };
 
 type CelebEntry = {
@@ -93,7 +198,10 @@ const POLITICIAN_TIERS: Record<string, Tier> = {
 
   // ── Tier 2: Major national leaders / prominent CMs ──
   "Priyanka Gandhi": 2,
-  "Mamata Banerjee": 2,
+  "C. Joseph Vijay": 2,
+  "Suvendu Adhikari": 2,
+  "Samrat Choudhary": 2,
+  "Himanta Biswa Sarma": 2,
   "Nirmala Sitharaman": 2,
   "Akhilesh Yadav": 2,
   "Rajnath Singh": 2,
@@ -102,7 +210,6 @@ const POLITICIAN_TIERS: Record<string, Tier> = {
   "Sharad Pawar": 2,
   "Mayawati": 2,
   "Lalu Prasad Yadav": 2,
-  "Nitish Kumar": 2,
   "Shashi Tharoor": 2,
   "Chandrababu Naidu": 2,
   "Smriti Irani": 2,
@@ -110,14 +217,13 @@ const POLITICIAN_TIERS: Record<string, Tier> = {
   "Asaduddin Owaisi": 2,
 
   // ── Tier 3: Senior ministers / state leaders ──
-  "MK Stalin": 3,
   "Tejashwi Yadav": 3,
   "Hemant Soren": 3,
   "JP Nadda": 3,
   "Nitin Gadkari": 3,
   "Pinarayi Vijayan": 3,
   "Omar Abdullah": 3,
-  "Himanta Biswa Sarma": 3,
+  "N. Rangasamy": 3,
   "KCR": 3,
   "Naveen Patnaik": 3,
   "Eknath Shinde": 3,
@@ -290,6 +396,61 @@ function getVotesForIPL(name: string): { respectors: number; dispiters: number }
   }
 }
 
+/**
+ * Political Party popularity tiers
+ * Tier 1: National giants                  → respectors 12k-20k, dispiters 4k-9k
+ * Tier 2: Major national / large regional  → respectors 5k-10k,  dispiters 2k-5k
+ * Tier 3: Established regional             → respectors 2k-5k,   dispiters 800-2.5k
+ * Tier 4: Niche / satire                   → respectors 300-1.5k, dispiters 100-800
+ */
+const PARTY_TIERS: Record<string, Tier> = {
+  // ── Tier 1: National giants ──
+  "BJP": 1,
+  "INC": 1,
+
+  // ── Tier 2: Major national / large regional ──
+  "AAP": 2,
+  "TMC": 2,
+  "DMK": 2,
+  "BJD": 2,
+  "YSRCP": 2,
+  "TDP": 2,
+  "BRS": 2,
+  "SP": 2,
+  "RJD": 2,
+  "JD(U)": 2,
+  "Shiv Sena (UBT)": 2,
+  "TVK": 2,
+
+  // ── Tier 3: Established regional ──
+  "BSP": 3,
+  "CPI(M)": 3,
+  "AIADMK": 3,
+  "NCP": 3,
+  "NCP (SP)": 3,
+  "Shiv Sena": 3,
+  "JKNC": 3,
+  "PDP": 3,
+  "SAD": 3,
+  "CPI": 3,
+  "RLD": 3,
+  "LJP": 3,
+  "NPP": 3,
+
+  // ── Tier 4: Niche / satire ──
+  "CJP": 4,
+};
+
+function getVotesForParty(name: string): { respectors: number; dispiters: number } {
+  const tier = PARTY_TIERS[name] ?? 3;
+  switch (tier) {
+    case 1: return { respectors: rand(12000, 20000), dispiters: rand(4000, 9000) };
+    case 2: return { respectors: rand(5000, 10000),  dispiters: rand(2000, 5000) };
+    case 3: return { respectors: rand(2000, 5000),   dispiters: rand(800, 2500) };
+    case 4: return { respectors: rand(300, 1500),    dispiters: rand(100, 800) };
+  }
+}
+
 const CELEBS: CelebEntry[] = [
   // ───────── POLITICIANS ─────────
   { name: "Narendra Modi", categorySlug: "politician", comment: "Prime Minister of India" },
@@ -300,10 +461,10 @@ const CELEBS: CelebEntry[] = [
   { name: "Smriti Irani", categorySlug: "politician", comment: "Senior BJP Leader & Former Minister" },
   { name: "Priyanka Gandhi", categorySlug: "politician", comment: "INC General Secretary & MP" },
   { name: "Shashi Tharoor", categorySlug: "politician", comment: "INC MP & celebrated Author" },
-  { name: "Mamata Banerjee", categorySlug: "politician", comment: "Chief Minister of West Bengal" },
+  { name: "Suvendu Adhikari", categorySlug: "politician", comment: "Chief Minister of West Bengal" },
   { name: "Nirmala Sitharaman", categorySlug: "politician", comment: "Finance Minister of India" },
   { name: "Akhilesh Yadav", categorySlug: "politician", comment: "SP Chief & Former UP CM" },
-  { name: "MK Stalin", categorySlug: "politician", comment: "Chief Minister of Tamil Nadu" },
+  { name: "C. Joseph Vijay", categorySlug: "politician", comment: "Chief Minister of Tamil Nadu, TVK Founder" },
   { name: "Tejashwi Yadav", categorySlug: "politician", comment: "RJD Leader & Bihar Opposition Leader" },
   { name: "Hemant Soren", categorySlug: "politician", comment: "Chief Minister of Jharkhand" },
   { name: "Chandrashekhar Azad", categorySlug: "politician", comment: "Dalit Rights Leader & MP" },
@@ -316,12 +477,13 @@ const CELEBS: CelebEntry[] = [
   { name: "Sharad Pawar", categorySlug: "politician", comment: "NCP-SP President & Veteran Leader" },
   { name: "Mayawati", categorySlug: "politician", comment: "BSP President & Former UP CM" },
   { name: "Lalu Prasad Yadav", categorySlug: "politician", comment: "RJD Founder & Former Bihar CM" },
-  { name: "Nitish Kumar", categorySlug: "politician", comment: "Chief Minister of Bihar, JD(U) Leader" },
+  { name: "Samrat Choudhary", categorySlug: "politician", comment: "Chief Minister of Bihar, BJP Leader" },
   { name: "Chandrababu Naidu", categorySlug: "politician", comment: "Chief Minister of Andhra Pradesh, TDP President" },
   { name: "Pinarayi Vijayan", categorySlug: "politician", comment: "Chief Minister of Kerala" },
   { name: "Omar Abdullah", categorySlug: "politician", comment: "Chief Minister of Jammu & Kashmir" },
-  { name: "Himanta Biswa Sarma", categorySlug: "politician", comment: "Chief Minister of Assam" },
+  { name: "Himanta Biswa Sarma", categorySlug: "politician", comment: "Chief Minister of Assam (Re-elected 2026)" },
   { name: "Pushkar Singh Dhami", categorySlug: "politician", comment: "Chief Minister of Uttarakhand" },
+  { name: "N. Rangasamy", categorySlug: "politician", comment: "Chief Minister of Puducherry, AINRC Founder" },
   { name: "KCR", categorySlug: "politician", comment: "TRS Founder & Former Telangana CM" },
   { name: "Naveen Patnaik", categorySlug: "politician", comment: "BJD President & Former Odisha CM" },
   { name: "Uddhav Thackeray", categorySlug: "politician", comment: "Shiv Sena (UBT) Leader & Former Maharashtra CM" },
@@ -406,63 +568,162 @@ const CELEBS: CelebEntry[] = [
   { name: "Delhi Capitals", categorySlug: "ipl-team", comment: "IPL Finalists (2020) — Delhi's Pride" },
   { name: "Punjab Kings", categorySlug: "ipl-team", comment: "Sadda Punjab — The Eternal Entertainers" },
   { name: "Lucknow Super Giants", categorySlug: "ipl-team", comment: "Newest Franchise — Rising Force in IPL" },
+
+  // ───────── POLITICAL PARTIES ─────────
+  // National Parties
+  { name: "BJP", categorySlug: "political-party", comment: "Bharatiya Janata Party — Lotus 🪷 | Right-wing, leads NDA at the Centre" },
+  { name: "INC", categorySlug: "political-party", comment: "Indian National Congress — Hand ✋ | Centre to centre-left, main opposition" },
+  { name: "AAP", categorySlug: "political-party", comment: "Aam Aadmi Party — Broom 🧹 | Welfarist, strong in Delhi & Punjab" },
+  { name: "BSP", categorySlug: "political-party", comment: "Bahujan Samaj Party — Elephant 🐘 | Dalit empowerment & social justice" },
+  { name: "CPI(M)", categorySlug: "political-party", comment: "Communist Party of India (Marxist) — Hammer, Sickle & Star | Left-wing" },
+  { name: "NPP", categorySlug: "political-party", comment: "National People's Party — Book 📖 | Regional base in Northeast India" },
+
+  // Major Regional Parties
+  { name: "TMC", categorySlug: "political-party", comment: "All India Trinamool Congress — Flowers & Grass | Dominant in West Bengal" },
+  { name: "DMK", categorySlug: "political-party", comment: "Dravida Munnetra Kazhagam — Rising Sun ☀️ | Dravidian movement, Tamil Nadu" },
+  { name: "AIADMK", categorySlug: "political-party", comment: "All India Anna Dravida Munnetra Kazhagam — Two Leaves | Tamil Nadu rival of DMK" },
+  { name: "TVK", categorySlug: "political-party", comment: "Tamilaga Vettri Kazhagam — Founded by C. Joseph Vijay | Tamil Nadu ruling party (2026)" },
+  { name: "TDP", categorySlug: "political-party", comment: "Telugu Desam Party — Bicycle 🚲 | Andhra Pradesh, founded by NTR" },
+  { name: "YSRCP", categorySlug: "political-party", comment: "YSR Congress Party — Ceiling Fan | Andhra Pradesh, led by Jagan Mohan Reddy" },
+  { name: "BRS", categorySlug: "political-party", comment: "Bharat Rashtra Samithi (formerly TRS) — Car 🚗 | Telangana statehood movement" },
+  { name: "SP", categorySlug: "political-party", comment: "Samajwadi Party — Bicycle 🚲 | Uttar Pradesh, led by Akhilesh Yadav" },
+  { name: "RJD", categorySlug: "political-party", comment: "Rashtriya Janata Dal — Lantern 🪔 | Bihar, founded by Lalu Prasad Yadav" },
+  { name: "JD(U)", categorySlug: "political-party", comment: "Janata Dal (United) — Arrow ➡️ | Bihar, led by Nitish Kumar" },
+  { name: "BJD", categorySlug: "political-party", comment: "Biju Janata Dal — Conch Shell | Odisha, founded by Naveen Patnaik" },
+  { name: "Shiv Sena (UBT)", categorySlug: "political-party", comment: "Shiv Sena (Uddhav Balasaheb Thackeray) — Flaming Torch 🔥 | Maharashtra" },
+  { name: "Shiv Sena", categorySlug: "political-party", comment: "Shiv Sena (Eknath Shinde faction) — Bow & Arrow 🏹 | Maharashtra" },
+  { name: "NCP (SP)", categorySlug: "political-party", comment: "Nationalist Congress Party – Sharadchandra Pawar | Maharashtra" },
+  { name: "NCP", categorySlug: "political-party", comment: "Nationalist Congress Party (Ajit Pawar faction) | Maharashtra" },
+
+  // Other Recognized / Regional Parties
+  { name: "CPI", categorySlug: "political-party", comment: "Communist Party of India — Ears of Corn & Sickle | Left-wing, est. 1925" },
+  { name: "SAD", categorySlug: "political-party", comment: "Shiromani Akali Dal — Scales ⚖️ | Punjab, oldest regional party of India" },
+  { name: "JKNC", categorySlug: "political-party", comment: "Jammu & Kashmir National Conference — Plough | Led by Abdullah family" },
+  { name: "PDP", categorySlug: "political-party", comment: "People's Democratic Party — Inkpot & Pen ✒️ | Jammu & Kashmir" },
+  { name: "RLD", categorySlug: "political-party", comment: "Rashtriya Lok Dal — Handpump | Western Uttar Pradesh, Jat heartland" },
+  { name: "LJP", categorySlug: "political-party", comment: "Lok Janshakti Party — Bungalow | Bihar, founded by Ram Vilas Paswan" },
+
+  // Satire
+  { name: "CJP", categorySlug: "political-party", comment: "Cockroach Janta Party — Voice of the Lazy & Unemployed 🪳 | Political satire (est. 2026)" },
 ];
 
+/**
+ * Modes:
+ *   default (upsert, prod-safe):
+ *     - Upserts categories by slug.
+ *     - Upserts celebs by (name + category). Updates image/comment only —
+ *       NEVER touches respectors/dispiters on existing entries.
+ *     - New celebs start at 0 votes (real users decide).
+ *     - Does NOT delete entries missing from the seed list.
+ *
+ *   --fresh (destructive, dev/local only):
+ *     - Wipes the Celeb and Category collections.
+ *     - Re-inserts everything with tier-based seeded vote counts.
+ *
+ *   --seed-votes (with default upsert):
+ *     - Inserts new celebs with tier-based seeded vote counts instead of 0.
+ *     - Has no effect on existing celebs.
+ */
 async function seed() {
+  const args = process.argv.slice(2);
+  const fresh = args.includes("--fresh");
+  const seedVotesOnInsert = args.includes("--seed-votes") || fresh;
+
   console.log("🌱 Connecting to MongoDB...");
   await mongoose.connect(MONGODB_URI, { bufferCommands: false });
   console.log("✅ Connected");
+  console.log(`📋 Mode: ${fresh ? "FRESH (destructive)" : "UPSERT (prod-safe)"}\n`);
 
-  // Clear existing data
-  await Celeb.deleteMany({});
-  await Category.deleteMany({});
-  console.log("🗑️  Cleared existing data");
+  if (fresh) {
+    await Celeb.deleteMany({});
+    await Category.deleteMany({});
+    console.log("🗑️  Cleared existing data");
+  }
 
-  // Create categories
+  // Upsert categories
   const categoryMap: Record<string, string> = {};
   for (const cat of CATEGORIES) {
-    const result = await Category.create(cat);
-    categoryMap[cat.slug] = result._id.toString();
+    await Category.updateOne(
+      { slug: cat.slug },
+      { $set: { name: cat.name, order: cat.order } },
+      { upsert: true },
+    );
   }
-  console.log(`📂 Seeded ${CATEGORIES.length} categories`);
+  const allCats = await Category.find({}).lean();
+  for (const c of allCats) categoryMap[(c as any).slug] = (c as any)._id.toString();
+  console.log(`📂 Upserted ${CATEGORIES.length} categories`);
 
-  // Create celebs with Wikipedia images
+  // Upsert celebs
+  let inserted = 0;
+  let updated = 0;
   let found = 0;
   let fallback = 0;
+  const missing: string[] = [];
 
   for (let i = 0; i < CELEBS.length; i++) {
     const celeb = CELEBS[i];
+    const categoryId = categoryMap[celeb.categorySlug];
+    if (!categoryId) {
+      console.warn(`\n⚠️  Skipping ${celeb.name} — category '${celeb.categorySlug}' not found`);
+      continue;
+    }
+
+    const explicit = EXPLICIT_IMAGES[celeb.name];
     const wikiName = WIKI_NAMES[celeb.name] ?? celeb.name;
-    const wikiImage = await fetchWikiImage(wikiName);
+    const resolvedImage = explicit ?? (await fetchWikiImage(wikiName));
+    const image = resolvedImage ?? avatar(celeb.name);
 
-    const image = wikiImage ?? avatar(celeb.name);
-    if (wikiImage) found++;
-    else fallback++;
+    if (resolvedImage) found++;
+    else {
+      fallback++;
+      missing.push(`${celeb.categorySlug}: ${celeb.name} (wiki: "${wikiName}")`);
+    }
 
-    const votes =
-      celeb.categorySlug === "politician" ? getVotesForPolitician(celeb.name) :
-      celeb.categorySlug === "actor"      ? getVotesForActor(celeb.name) :
-      celeb.categorySlug === "cricketer"  ? getVotesForCricketer(celeb.name) :
-      celeb.categorySlug === "ipl-team"   ? getVotesForIPL(celeb.name) :
-      { respectors: 0, dispiters: 0 };
+    const existing = await Celeb.findOne({ name: celeb.name, category: categoryId });
 
-    await Celeb.create({
-      name: celeb.name,
-      image,
-      comment: celeb.comment,
-      respectors: votes.respectors,
-      dispiters: votes.dispiters,
-      category: categoryMap[celeb.categorySlug],
-    });
+    if (existing) {
+      // Update image/comment only — preserve real-user vote counts
+      await Celeb.updateOne(
+        { _id: (existing as any)._id },
+        { $set: { image, comment: celeb.comment } },
+      );
+      updated++;
+    } else {
+      const votes = seedVotesOnInsert
+        ? (celeb.categorySlug === "politician"      ? getVotesForPolitician(celeb.name) :
+           celeb.categorySlug === "political-party" ? getVotesForParty(celeb.name) :
+           celeb.categorySlug === "actor"           ? getVotesForActor(celeb.name) :
+           celeb.categorySlug === "cricketer"       ? getVotesForCricketer(celeb.name) :
+           celeb.categorySlug === "ipl-team"        ? getVotesForIPL(celeb.name) :
+           { respectors: 0, dispiters: 0 })
+        : { respectors: 0, dispiters: 0 };
 
-    const icon = wikiImage ? "✅" : "🔤";
+      await Celeb.create({
+        name: celeb.name,
+        image,
+        comment: celeb.comment,
+        respectors: votes.respectors,
+        dispiters: votes.dispiters,
+        category: categoryId,
+      });
+      inserted++;
+    }
+
+    const icon = resolvedImage ? "✅" : "🔤";
     process.stdout.write(`\r${icon} [${i + 1}/${CELEBS.length}] ${celeb.name.padEnd(40)}`);
   }
 
-  console.log(`\n\n📸 Wikipedia images: ${found} | 🔤 Fallback avatars: ${fallback}`);
+  console.log(
+    `\n\n✨ Inserted: ${inserted} | 🔁 Updated: ${updated}` +
+    `  |  📸 Wiki: ${found} | 🔤 Fallback: ${fallback}`,
+  );
+  if (missing.length > 0) {
+    console.log(`\n⚠️  Entries that fell back to letter avatars:`);
+    for (const m of missing) console.log(`   - ${m}`);
+  }
 
   await mongoose.disconnect();
-  console.log("✅ Done!");
+  console.log("\n✅ Done!");
 }
 
 seed().catch((err) => {
