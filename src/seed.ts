@@ -157,6 +157,20 @@ const EXPLICIT_IMAGES: Record<string, string> = {
   "Suvendu Adhikari": "https://upload.wikimedia.org/wikipedia/commons/6/6e/Suvendu_Adhikari_at_Esplanade_Metro_Rail_Station%2C_Kolkata%2C_6_March_2024.jpg",
   "Samrat Choudhary": "https://upload.wikimedia.org/wikipedia/commons/7/73/Chief_Minister_Samrat_Chaudhary%28cropped%29.jpg",
   "N. Rangasamy": "https://upload.wikimedia.org/wikipedia/commons/7/71/N_Rangaswamy.jpg",
+
+  // IPL team logos — fair-use images hosted on en.wikipedia.org, so the
+  // pageimages action API doesn't expose them. Hardcoded URLs scraped from
+  // each team's article infobox.
+  "Chennai Super Kings": "https://upload.wikimedia.org/wikipedia/en/thumb/2/2b/Chennai_Super_Kings_Logo.svg/500px-Chennai_Super_Kings_Logo.svg.png",
+  "Mumbai Indians": "https://upload.wikimedia.org/wikipedia/en/thumb/c/cd/Mumbai_Indians_Logo.svg/500px-Mumbai_Indians_Logo.svg.png",
+  "Kolkata Knight Riders": "https://upload.wikimedia.org/wikipedia/en/thumb/4/4c/Kolkata_Knight_Riders_Logo.svg/500px-Kolkata_Knight_Riders_Logo.svg.png",
+  "Royal Challengers Bengaluru": "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/Royal_Challengers_Bengaluru_Logo.svg/500px-Royal_Challengers_Bengaluru_Logo.svg.png",
+  "Rajasthan Royals": "https://upload.wikimedia.org/wikipedia/en/thumb/5/5c/This_is_the_logo_for_Rajasthan_Royals%2C_a_cricket_team_playing_in_the_Indian_Premier_League_%28IPL%29.svg/500px-This_is_the_logo_for_Rajasthan_Royals%2C_a_cricket_team_playing_in_the_Indian_Premier_League_%28IPL%29.svg.png",
+  "Sunrisers Hyderabad": "https://upload.wikimedia.org/wikipedia/en/thumb/5/51/Sunrisers_Hyderabad_Logo.svg/500px-Sunrisers_Hyderabad_Logo.svg.png",
+  "Gujarat Titans": "https://upload.wikimedia.org/wikipedia/en/thumb/0/09/Gujarat_Titans_Logo.svg/500px-Gujarat_Titans_Logo.svg.png",
+  "Delhi Capitals": "https://upload.wikimedia.org/wikipedia/en/thumb/2/2f/Delhi_Capitals.svg/500px-Delhi_Capitals.svg.png",
+  "Punjab Kings": "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/Punjab_Kings_Logo.svg/500px-Punjab_Kings_Logo.svg.png",
+  "Lucknow Super Giants": "https://upload.wikimedia.org/wikipedia/en/thumb/3/34/Lucknow_Super_Giants_Logo.svg/500px-Lucknow_Super_Giants_Logo.svg.png",
 };
 
 type CelebEntry = {
