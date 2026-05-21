@@ -57,10 +57,13 @@ initSocket(server, CORS_ORIGINS);
 app.use(express.json({ limit: "100kb" }));
 app.use(express.urlencoded({ extended: false, limit: "100kb" }));
 
-// Global rate limiter — 100 requests per minute per IP
+// Global rate limiter — 500 requests per minute per IP.
+// Covers page loads + reads + votes + socket fallback polls, so this needs to
+// be comfortably above the voteLimiter (300/min) and leave headroom for the
+// frontend's category/celebs fetches that fire alongside vote bursts.
 const globalLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 100,
+  max: 500,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later" },

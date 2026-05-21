@@ -64,10 +64,13 @@ async function isImageBroken(imageUrl: string): Promise<boolean> {
   }
 }
 
-// Stricter rate limiter for anonymous voting — 30 votes per minute per IP
+// Rate limiter for anonymous voting — 300 requests per minute per IP.
+// Each request can batch up to 100 votes (see delta cap below), so theoretical
+// ceiling is 30k votes/min/IP. Loose enough to handle an enthusiastic tap-storm
+// and the trending-battle widget without throttling real users.
 const voteLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 80,
+  max: 300,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many votes, please slow down" },
